@@ -43,8 +43,13 @@ const TPLUS =
 const USDC_PLUS =
   "0xE815718D44694ec4637CB775C468d87f6e15B538";
 
-const STAKE_CONTRACT =
+// STAKE T+
+const STAKE_CONTRACT_TPLUS =
   "0x079a4Bf1Cbd0E4ce15391340cB46efA6396aBc82";
+
+// STAKE C+
+const STAKE_CONTRACT_CPLUS =
+  "0x753937137Eb92871A6F3517514d4f1Ee860e3FDF";
 
 // USDT
 const USDT =
@@ -188,6 +193,9 @@ function getAssetConfig() {
 
       wrappedToken: USDC_PLUS,
 
+      stakeContract:
+        STAKE_CONTRACT_CPLUS,
+
       symbol: "USDC",
 
       wrappedSymbol: "C+"
@@ -201,6 +209,9 @@ function getAssetConfig() {
     baseToken: USDT,
 
     wrappedToken: TPLUS,
+
+    stakeContract:
+      STAKE_CONTRACT_TPLUS,
 
     symbol: "USDT",
 
@@ -582,36 +593,40 @@ async function doStake() {
       return;
     }
 
-    const percent =
-      randomNumber(25, 50);
+    // random nominal
+    const amount =
+      randomNumber(
+        MIN_TOKEN,
+        MAX_TOKEN
+      );
 
-    let amount =
-      (balance * BigInt(percent)) /
-      BigInt(100);
-
-    amount =
-      (amount /
-        BigInt("1000000000000000000")) *
+    const amountWei =
+      BigInt(amount) *
       BigInt("1000000000000000000");
+
+    // cek balance cukup
+    if (amountWei > balance) {
+
+      console.log(
+        `Balance ${asset.wrappedSymbol} tidak cukup`
+      );
+
+      return;
+    }
 
     console.log("\n====================");
     console.log("STAKE / DEPOSIT");
 
     console.log(
-      "Percent:",
-      percent + "%"
-    );
-
-    console.log(
       `${asset.wrappedSymbol} Amount:`,
-      ethers.formatEther(amount)
+      amount
     );
 
     // approve
     const approveTx =
       await wrappedContract.approve(
-        STAKE_CONTRACT,
-        amount
+        asset.stakeContract,
+        amountWei
       );
 
     console.log(
@@ -635,7 +650,7 @@ async function doStake() {
       iface.encodeFunctionData(
         "deposit",
         [
-          amount,
+          amountWei,
           wallet.address
         ]
       );
@@ -643,7 +658,7 @@ async function doStake() {
     const tx =
       await wallet.sendTransaction({
 
-        to: STAKE_CONTRACT,
+        to: asset.stakeContract,
 
         data,
 
@@ -798,6 +813,7 @@ async function main() {
   if (
     choice === "1" ||
     choice === "2" ||
+    choice === "3" ||
     choice === "4"
   ) {
 
